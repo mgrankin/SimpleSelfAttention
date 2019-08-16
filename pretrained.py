@@ -122,6 +122,8 @@ def inject_ssa(model, nlayer=-4, nblock=-1, sym=0): # really works only for resn
     model.cuda()
     return model
 
+from radam import *
+
 @call_parse
 def main(
     gpu:Param("GPU to run on", str)=None,
@@ -134,7 +136,7 @@ def main(
     epochs: Param("Number of epochs", int)=5,
     bs: Param("Batch size", int)=256,
     mixup: Param("Mixup", float)=0.,
-    opt: Param("Optimizer (adam,rms,sgd)", str)='adam',
+    opt: Param("Optimizer (adam,rms,sgd,radam)", str)='radam',
     arch: Param("Architecture (xresnet34, xresnet50, resnet50)", str)='xresnet50',
     pretrained: Param("Use pretrained weights", int)=0,
     sa: Param("Self-attention", int)=0,
@@ -149,6 +151,7 @@ def main(
     gpu = setup_distrib(gpu)
     if gpu is None: bs *= torch.cuda.device_count()
     if   opt=='adam' : opt_func = partial(optim.Adam, betas=(mom,alpha), eps=eps)
+    elif opt=='radam' : opt_func = partial(RAdam, betas=(mom,alpha), eps=eps)
     elif opt=='rms'  : opt_func = partial(optim.RMSprop, alpha=alpha, eps=eps)
     elif opt=='sgd'  : opt_func = partial(optim.SGD, momentum=mom)
 
