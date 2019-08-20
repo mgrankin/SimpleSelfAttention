@@ -1,8 +1,11 @@
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 from fastai.torch_core import *
 import torch.nn as nn
 import torch,math,sys
 import torch.utils.model_zoo as model_zoo
 from functools import partial
+from TensorBoardCallback import *
 
 #Unmodified from https://github.com/fastai/fastai/blob/5c51f9eabf76853a89a9bc5741804d2ed4407e49/fastai/layers.py
 def conv1d(ni:int, no:int, ks:int=1, stride:int=1, padding:int=0, bias:bool=False):
@@ -92,7 +95,7 @@ def get_data(size, woof, bs, workers=None):
 from fastai.vision.models.xresnet import ResBlock
 from torchvision.models.resnet import BasicBlock, Bottleneck
 
-def inject_ssa(model, nlayer=-4, nblock=-1, sym=0): # really works only for resnet 
+def add_ssa_module(model, nlayer, nblock, sym): # really works only for resnet 
     res_part = model
     
     if isinstance(model, nn.Sequential) and not isinstance(model, XResNet): # resnet from fastai
@@ -121,6 +124,15 @@ def inject_ssa(model, nlayer=-4, nblock=-1, sym=0): # really works only for resn
     
     model.cuda()
     return model
+
+def inject_ssa(learn, nlayer=-4, nblock=-1, sym=0): 
+    add_ssa_module(learn.model, nlayer, nblock, sym)
+
+    missing_items = list(set(flatten_model(learn.model)) - \
+        set([item 
+                for group in learn.layer_groups
+                    for item in flatten_model(group)]))
+    learn.layer_groups[-1] = nn.Sequential(*(flatten_model(learn.layer_groups[-1]) + missing_items))
 
 from radam import *
 from optimizers import *
@@ -175,15 +187,16 @@ def main(
     learn.unfreeze()
 
     if sa:
-        inject_ssa(learn.model, sym=sym)
-
-    print(learn.path)
+        inject_ssa(learn, sym=sym)
 
     if dump: print(learn.model); exit()
     if mixup: learn = learn.mixup(alpha=mixup)
     learn = learn.to_fp16(dynamic=True)
     if gpu is None:       learn.to_parallel()
     elif num_distrib()>1: learn.to_distributed(gpu) # Requires `-m fastai.launch`
+
+    writer = SummaryWriter(comment='SSA')
+    learn.callback_fns.append(partial(TensorBoardFastAI, writer, track_weight=True, track_grad=True, metric_names=['val loss', 'accuracy', 'top_k_accuracy']))
 
     if lrfinder:
         # run learning rate finder
