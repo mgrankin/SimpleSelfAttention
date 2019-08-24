@@ -17,6 +17,7 @@ def conv1d(ni:int, no:int, ks:int=1, stride:int=1, padding:int=0, bias:bool=Fals
 
 
 
+# the code of SimpleSelfAttention from https://github.com/sdoria/SimpleSelfAttention
 # Adapted from SelfAttention layer at https://github.com/fastai/fastai/blob/5c51f9eabf76853a89a9bc5741804d2ed4407e49/fastai/layers.py
 # Inspired by https://arxiv.org/pdf/1805.08318.pdf
 class SimpleSelfAttention(nn.Module):
@@ -137,7 +138,7 @@ def inject_ssa(learn, nlayer=-4, nblock=-1, sym=0):
 from radam import *
 from optimizers import *
 from ranger import *
-from over9000 import *
+from ralamb import *
 
 @call_parse
 def main(
@@ -151,7 +152,7 @@ def main(
     epochs: Param("Number of epochs", int)=5,
     bs: Param("Batch size", int)=256,
     mixup: Param("Mixup", float)=0.,
-    opt: Param("Optimizer (adam,rms,sgd,radam,novograd,ranger)", str)='radam',
+    opt: Param("Optimizer (adam,rms,sgd,radam,novograd,ranger,ralamb)", str)='radam',
     arch: Param("Architecture (xresnet34, xresnet50, resnet50)", str)='xresnet50',
     pretrained: Param("Use pretrained weights", int)=0,
     sa: Param("Self-attention", int)=0,
@@ -171,7 +172,7 @@ def main(
     elif opt=='rms'  : opt_func = partial(optim.RMSprop, alpha=alpha, eps=eps)
     elif opt=='sgd'  : opt_func = partial(optim.SGD, momentum=mom)
     elif opt=='ranger'  : opt_func = partial(Ranger,  betas=(mom,alpha), eps=eps)
-    elif opt=='over9000'  : opt_func = partial(Over9000,  betas=(mom,alpha), eps=eps)
+    elif opt=='ralamb'  : opt_func = partial(Ralamb,  betas=(mom,alpha), eps=eps)
 
     data = get_data(size, woof, bs)
     bs_rat = bs/bs_one_gpu   #originally bs/256
