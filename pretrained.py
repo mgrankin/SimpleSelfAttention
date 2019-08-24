@@ -139,6 +139,7 @@ from radam import *
 from optimizers import *
 from ranger import *
 from ralamb import *
+from over9000 import *
 
 @call_parse
 def main(
@@ -173,6 +174,7 @@ def main(
     elif opt=='sgd'  : opt_func = partial(optim.SGD, momentum=mom)
     elif opt=='ranger'  : opt_func = partial(Ranger,  betas=(mom,alpha), eps=eps)
     elif opt=='ralamb'  : opt_func = partial(Ralamb,  betas=(mom,alpha), eps=eps)
+    elif opt=='over9000'  : opt_func = partial(Over9000,  betas=(mom,alpha), eps=eps)
 
     data = get_data(size, woof, bs)
     bs_rat = bs/bs_one_gpu   #originally bs/256

@@ -7,7 +7,7 @@ import itertools as it
 #credit - Lookahead implementation from LonePatient - https://github.com/lonePatient/lookahead_pytorch/blob/master/optimizer.py
 #credit2 - RAdam code by https://github.com/LiyuanLucasLiu/RAdam/blob/master/radam.py
 
-
+# RAdam + LookAHead
 class Ranger(Optimizer):
     
     def __init__(self, params, lr=1e-3, alpha=0.5, k=6, betas=(.9,0.999), eps=1e-8, weight_decay=0):
