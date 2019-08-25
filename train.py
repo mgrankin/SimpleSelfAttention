@@ -41,8 +41,17 @@ from ranger import *
 from ralamb import *
 from over9000 import *
 
-@call_parse
-def main(
+def fit_with_annealing(learn:Learner, num_epoch:int, lr:float=defaults.lr, annealing_start:float=0.7)->None:
+    n = len(learn.data.train_dl)
+    anneal_start = int(n*num_epoch*annealing_start)
+    phase0 = TrainingPhase(anneal_start).schedule_hp('lr', lr)
+    phase1 = TrainingPhase(n*num_epoch - anneal_start).schedule_hp('lr', lr, anneal=annealing_cos)
+    phases = [phase0, phase1]
+    sched = GeneralScheduler(learn, phases)
+    learn.callbacks.append(sched)
+    learn.fit(num_epoch)
+    
+def train(
         gpu:Param("GPU to run on", str)=None,
         woof: Param("Use imagewoof (otherwise imagenette)", int)=0,
         lr: Param("Learning rate", float)=1e-3,
@@ -60,6 +69,8 @@ def main(
         dump: Param("Print model; don't train", int)=0,
         lrfinder: Param("Run learning rate finder; don't train", int)=0,
         log: Param("Log file name", str)='log',
+        sched_type: Param("LR schedule type", str)='one_cycle',
+        ann_start: Param("Mixup", float)=-1.0,
         ):
     "Distributed training of Imagenette."
     
@@ -93,7 +104,6 @@ def main(
             )
     print(learn.path)
     
-    
     if dump: print(learn.model); exit()
     if mixup: learn = learn.mixup(alpha=mixup)
     learn = learn.to_fp16(dynamic=True)
@@ -106,4 +116,43 @@ def main(
         learn.lr_find(wd=1e-2)
         learn.recorder.plot()
     else:
-        learn.fit_one_cycle(epochs, lr, div_factor=10, pct_start=0.3)
+        if sched_type == 'one_cycle': 
+            learn.fit_one_cycle(epochs, lr, div_factor=10, pct_start=0.3)
+        elif sched_type == 'flat_and_anneal': 
+            fit_with_annealing(learn, epochs, lr, ann_start)
+    
+    return learn.recorder.metrics[-1][0]
+
+@call_parse
+def main(
+        run: Param("Count of run", int)=20,
+        gpu:Param("GPU to run on", str)=None,
+        woof: Param("Use imagewoof (otherwise imagenette)", int)=0,
+        lr: Param("Learning rate", float)=1e-3,
+        size: Param("Size (px: 128,192,224)", int)=128,
+        alpha: Param("Alpha", float)=0.99,
+        mom: Param("Momentum", float)=0.9,
+        eps: Param("epsilon", float)=1e-6,
+        epochs: Param("Number of epochs", int)=5,
+        bs: Param("Batch size", int)=256,
+        mixup: Param("Mixup", float)=0.,
+        opt: Param("Optimizer (adam,rms,sgd)", str)='adam',
+        arch: Param("Architecture (xresnet34, xresnet50)", str)='xresnet50',
+        sa: Param("Self-attention", int)=0,
+        sym: Param("Symmetry for self-attention", int)=0,
+        dump: Param("Print model; don't train", int)=0,
+        lrfinder: Param("Run learning rate finder; don't train", int)=0,
+        log: Param("Log file name", str)='log',
+        sched_type: Param("LR schedule type", str)='one_cycle',
+        ann_start: Param("Mixup", float)=-1.0,
+        ):
+
+    acc = np.array(
+        [train(gpu,woof,lr,size,alpha,mom,eps,epochs,bs,mixup,opt,arch,sa,sym,dump,lrfinder,log,sched_type,ann_start)
+                for i in range(run)])
+    
+    print(acc)
+    print(np.mean(acc))
+    print(np.std(acc))
+
+
