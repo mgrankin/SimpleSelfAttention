@@ -36,10 +36,11 @@ def get_data(size, woof, bs, workers=None):
             .normalize(imagenet_stats))
 
 from radam import *
-from optimizers import *
+from novograd import *
 from ranger import *
 from ralamb import *
 from over9000 import *
+from lookahead import *
 
 def fit_with_annealing(learn:Learner, num_epoch:int, lr:float=defaults.lr, annealing_start:float=0.7)->None:
     n = len(learn.data.train_dl)
@@ -85,6 +86,7 @@ def train(
     elif opt=='ranger'  : opt_func = partial(Ranger,  betas=(mom,alpha), eps=eps)
     elif opt=='ralamb'  : opt_func = partial(Ralamb,  betas=(mom,alpha), eps=eps)
     elif opt=='over9000'  : opt_func = partial(Over9000,  betas=(mom,alpha), eps=eps)
+    elif opt=='lookahead'  : opt_func = partial(LookaheadAdam, betas=(mom,alpha), eps=eps)
 
     data = get_data(size, woof, bs)
     bs_rat = bs/bs_one_gpu   #originally bs/256
