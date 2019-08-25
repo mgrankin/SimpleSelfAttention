@@ -2,6 +2,9 @@ import torch, math
 from torch.optim.optimizer import Optimizer
 import itertools as it
 
+# Lookahead implementation from https://github.com/lonePatient/lookahead_pytorch/blob/master/optimizer.py
+# RAdam + LARS implementation from https://gist.github.com/redknightlois/c4023d393eb8f92bb44b2ab582d7ec20
+
 # RAdam + LARS + LookAHead
 class Over9000(Optimizer):
 
