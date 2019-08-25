@@ -125,7 +125,7 @@ def train(
 
 @call_parse
 def main(
-        run: Param("Count of run", int)=20,
+        run: Param("Number of run", int)=20,
         gpu:Param("GPU to run on", str)=None,
         woof: Param("Use imagewoof (otherwise imagenette)", int)=0,
         lr: Param("Learning rate", float)=1e-3,
